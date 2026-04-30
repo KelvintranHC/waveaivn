@@ -532,6 +532,92 @@ export default function ClientEffects() {
     );
     document.querySelectorAll(".fade-up").forEach((el) => observer.observe(el));
 
+    // Count-up animation for prominent numbers
+    type CountFormat = {
+      prefix: string;
+      suffix: string;
+      target: number;
+      decimals: number;
+      pad: number;
+    };
+
+    const parseCountText = (raw: string): CountFormat | null => {
+      const txt = raw.trim();
+      if (!txt) return null;
+
+      // Keep common leading/trailing symbols, parse numeric core
+      const m = txt.match(/^([^0-9\-]*)(-?\d+(?:\.\d+)?)([^0-9]*)$/);
+      if (!m) return null;
+
+      const prefix = m[1] ?? "";
+      const numStr = m[2] ?? "";
+      const suffix = m[3] ?? "";
+
+      const target = Number(numStr);
+      if (!Number.isFinite(target)) return null;
+
+      const decimals = (numStr.split(".")[1] ?? "").length;
+
+      // Preserve leading zeros for integers like "01"
+      const pad = numStr.includes(".") ? 0 : Math.max(0, (numStr.match(/^0+/)?.[0]?.length ?? 0) + numStr.replace(/^0+/, "").length);
+
+      return { prefix, suffix, target, decimals, pad };
+    };
+
+    const formatCount = (v: number, fmt: CountFormat) => {
+      const rounded = fmt.decimals ? v.toFixed(fmt.decimals) : Math.round(v).toString();
+      const core =
+        fmt.pad > 0 && fmt.decimals === 0
+          ? rounded.toString().padStart(fmt.pad, "0")
+          : rounded.toString();
+      return `${fmt.prefix}${core}${fmt.suffix}`;
+    };
+
+    const rafs = new Map<Element, number>();
+    const runCountUp = (el: HTMLElement) => {
+      if ((el as any).dataset?.counted === "1") return;
+      const raw = el.textContent ?? "";
+      const fmt = parseCountText(raw);
+      if (!fmt) return;
+
+      (el as any).dataset.counted = "1";
+
+      const duration = 1100;
+      const start = performance.now();
+      const from = 0;
+
+      const tick = (now: number) => {
+        const t = Math.min(1, (now - start) / duration);
+        // easeOutCubic
+        const eased = 1 - Math.pow(1 - t, 3);
+        const val = from + (fmt.target - from) * eased;
+        el.textContent = formatCount(val, fmt);
+
+        if (t < 1) {
+          rafs.set(el, window.requestAnimationFrame(tick));
+        } else {
+          el.textContent = formatCount(fmt.target, fmt);
+          rafs.delete(el);
+        }
+      };
+
+      el.textContent = formatCount(0, fmt);
+      rafs.set(el, window.requestAnimationFrame(tick));
+    };
+
+    const countObserver = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((e) => {
+          if (!e.isIntersecting) return;
+          runCountUp(e.target as HTMLElement);
+          countObserver.unobserve(e.target);
+        });
+      },
+      { threshold: 0.35 },
+    );
+
+    document.querySelectorAll<HTMLElement>(".stat-num, .svc-num").forEach((el) => countObserver.observe(el));
+
     const onLoad = () => {
       document.querySelectorAll<HTMLElement>(".fade-up").forEach((el) => {
         const rect = el.getBoundingClientRect();
@@ -547,6 +633,9 @@ export default function ClientEffects() {
       if (rafId) window.cancelAnimationFrame(rafId);
       faqHandlers.forEach(({ el, handler }) => el.removeEventListener("click", handler));
       observer.disconnect();
+      countObserver.disconnect();
+      rafs.forEach((id) => window.cancelAnimationFrame(id));
+      rafs.clear();
       heroRo?.disconnect();
     };
   }, []);

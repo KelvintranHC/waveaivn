@@ -91,12 +91,38 @@
     letter-spacing: 2px; text-transform: uppercase; transition: background .2s, color .2s;
   }
   .nav-cta:hover { background: var(--white); color: var(--black); }
-  .nav-burger {
-    width: 48px; height: 42px; border: 1px solid var(--white); border-left: none;
-    background: transparent; cursor: crosshair;
-    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px;
+
+  /* ─── NAV Responsive (Mobile) ─── */
+  @media (max-width: 768px) {
+    nav .nav-inner {
+      padding: 16px 20px;
+      flex-wrap: wrap;
+      gap: 12px 16px;
+    }
+
+    .nav-logo {
+      font-size: 20px;
+      letter-spacing: 2.5px;
+      flex: 1 1 auto;
+    }
+
+    .nav-right {
+      flex: 0 0 auto;
+    }
+
+    /* Mobile: hide text menu links */
+    .nav-links { display: none; }
+
+    .nav-cta {
+      padding: 10px 18px;
+      font-size: 11px;
+      letter-spacing: 2px;
+    }
   }
-  .nav-burger span { display: block; width: 18px; height: 1px; background: var(--white); }
+
+  @media (max-width: 420px) {
+    nav .nav-inner { padding-left: 16px; padding-right: 16px; }
+  }
 
   /* ─── HERO ─── */
   .hero {
@@ -1080,6 +1106,11 @@
     transition: opacity .65s ease, transform .65s ease;
   }
   .fade-up.visible { opacity: 1; transform: none; }
+
+  /* Optional stagger helpers */
+  .fade-delay-1 { transition-delay: .08s; }
+  .fade-delay-2 { transition-delay: .16s; }
+  .fade-delay-3 { transition-delay: .24s; }
 
   /* Safety: if JS fails, still show content after 2s */
   @keyframes fallbackShow {
